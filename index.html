@@ -129,22 +129,25 @@ thead {
 
   <!-- 🔐 LOGIN -->
   <div id="loginView">
-    <h2>Login</h2>
+    <h2><center>🔐 Login</center></h2>
+	<center><p id="loginMsg"></p></center>
     <input id="loginUser" placeholder="Username">
     <input id="loginPass" type="password" placeholder="Password">
-    <button class="primary" onclick="login()">Login</button>
-    <p id="loginMsg"></p>
+    <center><button class="primary" onclick="login()">Login</button>
     <p class="link" onclick="showRegister()">Create account</p>
+	</center>
   </div>
 
   <!-- 📝 REGISTER -->
   <div id="registerView" class="hidden">
-    <h2>Register</h2>
+    <h2><center>📝 Register</center></h2>
+    <p id="regMsg"></p>
     <input id="regUser" placeholder="Username">
     <input id="regPass" type="password" placeholder="Password">
-    <button class="primary" onclick="register()">Register</button>
-    <p id="regMsg"></p>
-    <p class="link" onclick="showLogin()">Back to login</p>
+    <center>
+      <button class="primary" onclick="register()">Register</button>
+      <p class="link" onclick="showLogin()">Back to login</p>
+    </center>
   </div>
 
   <!-- 💰 EXPENSE APP -->
@@ -170,11 +173,14 @@ thead {
     </div>
 
     <br>
+	<center>
     <button class="primary" onclick="addExpense()" id="saveBtn">Save</button>
     <button class="secondary" onclick="clearForm()">Refresh</button>
 	<button class="primary" onclick="loadExpenses()">View Expense Report</button>
+	</center>
 </div>	
   <div id="appReport" class="hidden">
+  <h2><center>💰 Expense Report</center></h2>
     <table>
       <thead>
         <tr>
@@ -190,7 +196,7 @@ thead {
       <tbody id="report"></tbody>
     </table>
 	<br>
-	<button class="primary" onclick="showApp()">Back</button>    
+	<center><button class="primary" onclick="showApp()">Back</button></center>
   </div>
 </div>
 
