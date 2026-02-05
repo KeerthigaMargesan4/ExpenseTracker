@@ -1,4 +1,6 @@
-Flask==2.3.4
-Flask-Cors==4.0.5
-PyJWT==2.8.0
-Werkzeug==2.3.8
+flask
+flask-cors
+PyPDF2
+gunicorn
+PyJWT
+Werkzeug
