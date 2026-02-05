@@ -115,10 +115,38 @@ def logout():
     return jsonify({"msg": "bye"})
 
 # ---------- EXPENSE API ----------
+def validate_expense_data(d):
+    if not d.get("date"):
+        return "Date is required"
+    if d.get("type") not in ["Income", "Expense"]:
+        return "Invalid type"
+    if d.get("bank") not in ["ICICI", "Credit Card"]:
+        return "Invalid bank"
+
+    income_categories = ["Salary", "Interest", "Dividend", "Reimbursement"]
+    expense_categories = ["Home Expense", "Investment", "Self Expense", "Other Expense", "Hospital"]
+    categories = income_categories if d["type"]=="Income" else expense_categories
+    if d.get("category") not in categories:
+        return "Invalid category"
+
+    try:
+        amount = float(d.get("amount", 0))
+        if amount <= 0:
+            return "Amount must be positive"
+    except:
+        return "Invalid amount"
+
+    if d.get("description") and len(d["description"]) > 100:
+        return "Description too long"
+
+    return None
 @app.route("/add-expense", methods=["POST"])
 @token_required
 def add_expense(current_user):
     d = request.json
+    error = validate_expense_data(d)
+    if error:
+        return jsonify({"msg": error}), 400
     conn = get_db()
     conn.execute("""
         INSERT INTO expenses(date,type,bank,category,description,amount)
@@ -148,6 +176,9 @@ def delete_expense(current_user, id):
 @token_required
 def update_expense(current_user, id):
     d = request.json
+    error = validate_expense_data(d)
+    if error:
+        return jsonify({"msg": error}), 400
     conn = get_db()
     conn.execute("""
         UPDATE expenses

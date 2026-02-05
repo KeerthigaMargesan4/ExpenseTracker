@@ -156,6 +156,7 @@ thead {
       <h2>💰 Expense Tracker</h2>
       <button class="danger" onclick="logout()">Logout</button>
     </div>
+	<p id="expenseMsg" style="color: green; text-align: center; margin: 5px 0;"></p>
 
     <div class="row">
       <input id="date" type="date">
@@ -342,7 +343,38 @@ async function logout(){
 
 /* ---------- EXPENSE ---------- */
 let editingId = null;
+function validateExpense(payload) {
+  if(!payload.date) {
+    alert("Date is required");
+    return false;
+  }
+  if(!["Income","Expense"].includes(payload.type)) {
+    alert("Type must be Income or Expense");
+    return false;
+  }
+  if(!["ICICI","Credit Card"].includes(payload.bank)) {
+    alert("Invalid bank selected");
+    return false;
+  }
 
+  const categories = payload.type === "Income" ? incomeCategories : expenseCategories;
+  if(!categories.includes(payload.category)) {
+    alert("Invalid category for selected type");
+    return false;
+  }
+
+  if(!payload.amount || isNaN(payload.amount) || Number(payload.amount) <= 0) {
+    alert("Amount must be a positive number");
+    return false;
+  }
+
+  if(payload.description && payload.description.length > 100) {
+    alert("Description too long (max 100 characters)");
+    return false;
+  }
+
+  return true;
+}
 async function addExpense(){
   const token = localStorage.getItem("token")
   const payload = {
@@ -353,23 +385,37 @@ async function addExpense(){
     description: desc.value,
     amount: amt.value
   };
+  if(!validateExpense(payload)) return;
 
+  let url, method;
   if(editingId){
-    await fetch(`${API_URL}/expense/` + editingId, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token},
-      body: JSON.stringify(payload)
-    });
-    editingId = null;
-	loadExpenses();
+    url = `${API_URL}/expense/` + editingId;
+    method = "PUT";
   } else {
-    await fetch(`${API_URL}/add-expense`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token},
-      body: JSON.stringify(payload)
-    });
+    url = `${API_URL}/add-expense`;
+    method = "POST";
   }
-  clearForm();
+
+  const res = await fetch(url, {
+    method,
+    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+    body: JSON.stringify(payload)
+  });
+
+  if(res.ok){
+    expenseMsg.style.color = "green";
+    expenseMsg.innerText = editingId ? "Data updated successfully" : "Data added successfully";
+    editingId = null;
+    loadExpenses(); // reload table
+    clearForm();
+  } else {
+    const data = await res.json();
+    expenseMsg.style.color = "red";
+    expenseMsg.innerText = data.msg || "Error occurred";
+  }
+
+  // Clear message after 3 seconds
+  setTimeout(() => { expenseMsg.innerText = ""; }, 3000);
 }
 function populateFilterCategories() {
   const catSelect = document.getElementById("filterCategory");
