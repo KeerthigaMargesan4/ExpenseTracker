@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Expense Tracker</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: linear-gradient(120deg, #e3f2fd, #f9fbe7);
+  min-height: 100vh;
+}
+
+.card {
+  max-width: 1000px;
+  margin: 40px auto;
+  background: #fff;
+  padding: 25px;
+  border-radius: 14px;
+  box-shadow: 0 20px 40px rgba(0,0,0,.12);
+}
+
+h2 {
+  margin-top: 0;
+  color: #2c3e50;
+}
+
+.hidden {
+  display: none;
+}
+
+/* ---------- FORMS ---------- */
+input, select {
+  width: 100%;
+  padding: 10px;
+  margin: 8px 0;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+button {
+  padding: 10px 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+}
+
+.primary {
+  background: #3498db;
+  color: white;
+}
+
+.secondary {
+  background: #95a5a6;
+  color: white;
+}
+
+.danger {
+  background: #e74c3c;
+  color: white;
+}
+
+.link {
+  color: #3498db;
+  cursor: pointer;
+  text-decoration: underline;
+  font-size: 14px;
+}
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+
+/* ---------- FORM GRID ---------- */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+  gap: 10px;
+}
+
+/* ---------- TABLE ---------- */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+}
+
+th, td {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+  font-size: 14px;
+}
+tbody td {
+  text-align: center;
+  vertical-align: middle;
+}
+
+thead {
+  background: #f4f6f8;
+}
+
+.income {
+  background: #e8f8f0;
+}
+
+.expense {
+  background: #fdecea;
+}
+
+.icon {
+  cursor: pointer;
+  font-size: 16px;
+  color: #e74c3c;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+  <!-- 🔐 LOGIN -->
+  <div id="loginView">
+    <h2>Login</h2>
+    <input id="loginUser" placeholder="Username">
+    <input id="loginPass" type="password" placeholder="Password">
+    <button class="primary" onclick="login()">Login</button>
+    <p id="loginMsg"></p>
+    <p class="link" onclick="showRegister()">Create account</p>
+  </div>
+
+  <!-- 📝 REGISTER -->
+  <div id="registerView" class="hidden">
+    <h2>Register</h2>
+    <input id="regUser" placeholder="Username">
+    <input id="regPass" type="password" placeholder="Password">
+    <button class="primary" onclick="register()">Register</button>
+    <p id="regMsg"></p>
+    <p class="link" onclick="showLogin()">Back to login</p>
+  </div>
+
+  <!-- 💰 EXPENSE APP -->
+  <div id="appView" class="hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h2>💰 Expense Tracker</h2>
+      <button class="danger" onclick="logout()">Logout</button>
+    </div>
+
+    <div class="row">
+      <input id="date" type="date">
+      <select id="type" onchange="updateCategories()">
+		<option value="Income">Income</option>
+		<option value="Expense">Expense</option>
+	  </select>
+      <select id="bank">
+        <option>ICICI</option>
+        <option>Credit Card</option>
+      </select>
+      <select id="category"></select>
+      <input id="desc" placeholder="Description">
+      <input id="amt" type="number" placeholder="Amount">
+    </div>
+
+    <br>
+    <button class="primary" onclick="addExpense()" id="saveBtn">Save</button>
+    <button class="secondary" onclick="clearForm()">Refresh</button>
+	<button class="primary" onclick="loadExpenses()">View Expense Report</button>
+</div>	
+  <div id="appReport" class="hidden">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Type</th>
+          <th>Bank</th>
+          <th>Category</th>
+          <th>Description</th>
+          <th>Amount</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="report"></tbody>
+    </table>
+	<br>
+	<button class="primary" onclick="showApp()">Back</button>    
+  </div>
+</div>
+
+<script>
+const incomeCategories = [
+  "Salary",
+  "Interest",
+  "Dividend",
+  "Reimbursement"
+];
+
+const expenseCategories = [
+  "Home Expense",
+  "Investment",
+  "Self Expense",
+  "Other Expense",
+  "Hospital"
+];
+
+function updateCategories(selected = ""){
+  const isIncome = type.value === "Income";
+  const list = isIncome ? incomeCategories : expenseCategories;
+
+  category.innerHTML = "";
+  list.forEach(c => {
+    const opt = document.createElement("option");
+    opt.value = c;
+    opt.textContent = c;
+    if(c === selected) opt.selected = true;
+    category.appendChild(opt);
+  });
+}
+
+function showLogin(){
+  loginView.classList.remove("hidden");
+  registerView.classList.add("hidden");
+  appView.classList.add("hidden");
+  appReport.classList.add("hidden");
+}
+
+function showRegister(){
+  loginView.classList.add("hidden");
+  registerView.classList.remove("hidden");
+  appView.classList.add("hidden");
+  appReport.classList.add("hidden");
+}
+
+function showApp(){
+  loginView.classList.add("hidden");
+  registerView.classList.add("hidden");
+  appView.classList.remove("hidden");
+  appReport.classList.add("hidden");
+}
+function showReport(){
+  loginView.classList.add("hidden");
+  registerView.classList.add("hidden");
+  appView.classList.add("hidden");
+  appReport.classList.remove("hidden");
+}
+
+/* ---------- AUTH ---------- */
+async function login(){
+  const res = await fetch("/login",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify({
+      username: loginUser.value,
+      password: loginPass.value
+    })
+  });
+
+  if(res.ok){
+    showApp();
+  } else {
+    loginMsg.innerText = "Invalid login";
+  }
+}
+function clearForm(){
+  date.value = "";
+  type.value = "Expense";
+  bank.value = "ICICI";
+  desc.value = "";
+  amt.value = "";
+  editingId = null;
+  saveBtn.innerText = "Add";
+  updateCategories();
+}
+
+
+async function register(){
+  const res = await fetch("/register",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify({
+      username: regUser.value,
+      password: regPass.value
+    })
+  });
+
+  if(res.ok){
+    regMsg.innerText = "Registered. Please login.";
+  } else {
+    regMsg.innerText = "User already exists";
+  }
+}
+
+async function logout(){
+  await fetch("/logout",{method:"POST"});
+  showLogin();
+}
+
+/* ---------- EXPENSE ---------- */
+let editingId = null;
+async function addExpense(){
+  const payload = {
+    date: date.value,
+    type: type.value,
+    bank: bank.value,
+    category: category.value,
+    description: desc.value,
+    amount: amt.value
+  };
+
+  if(editingId){
+    await fetch("/expense/" + editingId, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    editingId = null;
+	loadExpenses();
+  } else {
+    await fetch("/add-expense", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+  }
+  clearForm();
+}
+
+
+async function loadExpenses(){
+  const res = await fetch("/expenses");
+  if(!res.ok) return;
+
+  const data = await res.json();
+  report.innerHTML = "";
+
+  data.forEach(e=>{
+    report.innerHTML += `
+      <tr class="${e.type==='Income'?'income':'expense'}">
+        <td>${e.date}</td>
+        <td>${e.type}</td>
+        <td>${e.bank}</td>
+        <td>${e.category}</td>
+        <td>${e.description}</td>
+        <td>₹ ${e.amount}</td>
+        <td>
+		  <span class="icon" onclick='edit(${JSON.stringify(e)})'>✏️</span>
+		  &nbsp;
+		  <span class="icon" onclick="del(${e.id})">🗑</span>
+		</td>
+      </tr>
+    `;
+  });
+  showReport();
+}
+
+async function del(id){
+  await fetch("/expense/"+id,{method:"DELETE"});
+  loadExpenses();
+}
+
+function edit(e){
+  editingId = e.id;
+
+  date.value = e.date;
+  type.value = e.type;
+  bank.value = e.bank;
+  desc.value = e.description;
+  amt.value = e.amount;
+
+  updateCategories(e.category);
+  saveBtn.innerText = "Update";
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  showApp();
+}
+
+updateCategories();
+/* ---------- INITIAL ---------- */
+showLogin();
+</script>
+
+</body>
+</html>
