@@ -181,6 +181,32 @@ thead {
 </div>	
   <div id="appReport" class="hidden">
   <h2><center>💰 Expense Report</center></h2>
+  <div id="filters" style="margin-bottom: 15px; display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, auto)); gap: 6px; align-items: center;">
+	  <input type="date" id="filterFrom" placeholder="From" style="padding:4px;">
+	  <input type="date" id="filterTo" placeholder="To" style="padding:4px;">
+
+	  <select id="filterType" style="padding:4px;">
+		<option value="">All Types</option>
+		<option value="Income">Income</option>
+		<option value="Expense">Expense</option>
+	  </select>
+
+	  <select id="filterBank" style="padding:4px;">
+		<option value="">All Banks</option>
+		<option>ICICI</option>
+		<option>Credit Card</option>
+	  </select>
+
+	  <select id="filterCategory" style="padding:4px;">
+		<option value="">All Categories</option>
+	  </select>
+
+	  <!-- Small icon buttons -->
+	  <button class="primary" title="Apply Filter" onclick="applyFilter()" style="padding:4px 6px; font-size:14px;">🔍</button>
+	  <button class="secondary" title="Clear Filter" onclick="clearFilter()" style="padding:4px 6px; font-size:14px;">❌</button>
+	</div>
+
+
     <table>
       <thead>
         <tr>
@@ -344,7 +370,19 @@ async function addExpense(){
   }
   clearForm();
 }
+function populateFilterCategories() {
+  const catSelect = document.getElementById("filterCategory");
+  catSelect.innerHTML = '<option value="">All Categories</option>';
+  const allCategories = [...incomeCategories, ...expenseCategories];
+  allCategories.forEach(c => {
+    const opt = document.createElement("option");
+    opt.value = c;
+    opt.textContent = c;
+    catSelect.appendChild(opt);
+  });
+}
 
+let allExpenses = []; // store loaded expenses for filtering
 
 async function loadExpenses(){
   const token = localStorage.getItem("token")
@@ -353,7 +391,11 @@ async function loadExpenses(){
   });
   if(!res.ok) return;
 
-  const data = await res.json();
+  allExpenses = await res.json();
+  displayExpenses(allExpenses);
+}
+
+function displayExpenses(data) {
   report.innerHTML = "";
 
   data.forEach(e=>{
@@ -374,6 +416,32 @@ async function loadExpenses(){
     `;
   });
   showReport();
+}
+function applyFilter() {
+  const from = filterFrom.value;
+  const to = filterTo.value;
+  const type = filterType.value;
+  const bank = filterBank.value;
+  const category = filterCategory.value;
+
+  let filtered = allExpenses;
+
+  if(from) filtered = filtered.filter(e => e.date >= from);
+  if(to) filtered = filtered.filter(e => e.date <= to);
+  if(type) filtered = filtered.filter(e => e.type === type);
+  if(bank) filtered = filtered.filter(e => e.bank === bank);
+  if(category) filtered = filtered.filter(e => e.category === category);
+
+  displayExpenses(filtered);
+}
+
+function clearFilter() {
+  filterFrom.value = "";
+  filterTo.value = "";
+  filterType.value = "";
+  filterBank.value = "";
+  filterCategory.value = "";
+  displayExpenses(allExpenses);
 }
 
 async function del(id){
@@ -400,6 +468,7 @@ function edit(e){
 }
 
 updateCategories();
+populateFilterCategories();
 /* ---------- INITIAL ---------- */
 showLogin();
 </script>
