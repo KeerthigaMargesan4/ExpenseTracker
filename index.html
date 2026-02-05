@@ -201,6 +201,8 @@ thead {
 </div>
 
 <script>
+const API_URL = 'https://expensetracker-oo6s.onrender.com';
+//const API_URL = 'http://localhost:5000';
 const incomeCategories = [
   "Salary",
   "Interest",
@@ -259,7 +261,7 @@ function showReport(){
 
 /* ---------- AUTH ---------- */
 async function login(){
-  const res = await fetch("/login",{
+  const res = await fetch(`${API_URL}/login`,{
     method:"POST",
     headers:{ "Content-Type":"application/json" },
     body:JSON.stringify({
@@ -268,11 +270,13 @@ async function login(){
     })
   });
 
-  if(res.ok){
-    showApp();
-  } else {
-    loginMsg.innerText = "Invalid login";
-  }
+  if (res.ok) {
+        const data = await res.json();
+        localStorage.setItem("token", data.token); // save JWT
+        showApp();
+    } else {
+        loginMsg.innerText = "Invalid login";
+    }
 }
 function clearForm(){
   date.value = "";
@@ -287,9 +291,9 @@ function clearForm(){
 
 
 async function register(){
-  const res = await fetch("/register",{
+  const res = await fetch(`${API_URL}/register`,{
     method:"POST",
-    headers:{ "Content-Type":"application/json" },
+    headers:{ "Content-Type":"application/json"},
     body:JSON.stringify({
       username: regUser.value,
       password: regPass.value
@@ -304,13 +308,15 @@ async function register(){
 }
 
 async function logout(){
-  await fetch("/logout",{method:"POST"});
+  await fetch(`${API_URL}/logout`,{method:"POST"});
   showLogin();
 }
 
 /* ---------- EXPENSE ---------- */
 let editingId = null;
+
 async function addExpense(){
+  const token = localStorage.getItem("token")
   const payload = {
     date: date.value,
     type: type.value,
@@ -321,17 +327,17 @@ async function addExpense(){
   };
 
   if(editingId){
-    await fetch("/expense/" + editingId, {
+    await fetch(`${API_URL}/expense/` + editingId, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token},
       body: JSON.stringify(payload)
     });
     editingId = null;
 	loadExpenses();
   } else {
-    await fetch("/add-expense", {
+    await fetch(`${API_URL}/add-expense`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token},
       body: JSON.stringify(payload)
     });
   }
@@ -340,7 +346,10 @@ async function addExpense(){
 
 
 async function loadExpenses(){
-  const res = await fetch("/expenses");
+  const token = localStorage.getItem("token")
+  const res = await fetch(`${API_URL}/expenses`, {
+     headers: { "Authorization": "Bearer " + token }
+  });
   if(!res.ok) return;
 
   const data = await res.json();
@@ -367,13 +376,15 @@ async function loadExpenses(){
 }
 
 async function del(id){
-  await fetch("/expense/"+id,{method:"DELETE"});
+  const token = localStorage.getItem("token")
+  await fetch(`${API_URL}/expense/`+id,{method:"DELETE",
+   headers: { "Authorization": "Bearer " + token }
+  });
   loadExpenses();
 }
 
 function edit(e){
   editingId = e.id;
-
   date.value = e.date;
   type.value = e.type;
   bank.value = e.bank;

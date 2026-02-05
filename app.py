@@ -1,12 +1,38 @@
 from flask import Flask, request, jsonify, session, send_from_directory, redirect
 import sqlite3
+from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
+import jwt
+import datetime
+from functools import wraps
 
-app = Flask(__name__)
-app.secret_key = "expense-secret-key"
-
+app = Flask(__name__, static_folder='.', static_url_path='')
+SECRET_KEY = "expense-jwt-secret"
+CORS(app, supports_credentials=True)
 DB = "expenses.db"
 
+# ---------- JWT helper ----------
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+        # JWT is passed in the request header
+        if 'Authorization' in request.headers:
+            try:
+                token = request.headers['Authorization'].split()[1]
+            except IndexError:
+                return jsonify({"error": "Token missing"}), 401
+        if not token:
+            return jsonify({"error": "Token missing"}), 401
+
+        try:
+            data = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+            current_user = data['username']
+        except Exception as e:
+            return jsonify({"error": "Invalid token"}), 401
+
+        return f(current_user, *args, **kwargs)
+    return decorated
 # ---------- DB ----------
 def get_db():
     conn = sqlite3.connect(DB)
@@ -75,8 +101,13 @@ def login():
     ).fetchone()
 
     if user and check_password_hash(user["password"], data["password"]):
-        session["user"] = user["username"]
-        return jsonify({"msg": "ok"})
+        # Create JWT token
+        token = jwt.encode({
+            'username': user['username'],
+            'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=2)
+        }, SECRET_KEY, algorithm="HS256")
+
+        return jsonify({"token": token})  # return token instead of session
     return jsonify({"msg": "Invalid"}), 401
 
 @app.route("/logout", methods=["POST"])
@@ -86,46 +117,37 @@ def logout():
 
 # ---------- EXPENSE API ----------
 @app.route("/add-expense", methods=["POST"])
-def add_expense():
-    if "user" not in session:
-        return jsonify({"error": "Unauthorized"}), 401
-
+@token_required
+def add_expense(current_user):
     d = request.json
     conn = get_db()
     conn.execute("""
         INSERT INTO expenses(date,type,bank,category,description,amount)
         VALUES (?,?,?,?,?,?)
     """, (
-        d["date"], d["type"], d["bank"],
-        d["category"], d["description"], d["amount"]
+        d["date"], d["type"], d["bank"], d["category"], d["description"], d["amount"]
     ))
     conn.commit()
     return jsonify({"msg": "saved"})
 
 @app.route("/expenses")
-def expenses():
-    if "user" not in session:
-        return jsonify({"error": "Unauthorized"}), 401
-
+@token_required
+def expenses(current_user):
     conn = get_db()
     rows = conn.execute("SELECT * FROM expenses ORDER BY date").fetchall()
     return jsonify([dict(r) for r in rows])
 
 @app.route("/expense/<int:id>", methods=["DELETE"])
-def delete_expense(id):
-    if "user" not in session:
-        return jsonify({"error": "Unauthorized"}), 401
-
+@token_required
+def delete_expense(current_user, id):
     conn = get_db()
     conn.execute("DELETE FROM expenses WHERE id=?", (id,))
     conn.commit()
     return jsonify({"msg": "deleted"})
 
 @app.route("/expense/<int:id>", methods=["PUT"])
-def update_expense(id):
-    if "user" not in session:
-        return jsonify({"error": "Unauthorized"}), 401
-
+@token_required
+def update_expense(current_user, id):
     d = request.json
     conn = get_db()
     conn.execute("""
@@ -141,5 +163,4 @@ def update_expense(id):
     return jsonify({"msg": "updated"})
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
