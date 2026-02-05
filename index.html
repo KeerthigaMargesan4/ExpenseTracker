@@ -308,6 +308,7 @@ async function register(){
 }
 
 async function logout(){
+  localStorage.removeItem("token");
   await fetch(`${API_URL}/logout`,{method:"POST"});
   showLogin();
 }

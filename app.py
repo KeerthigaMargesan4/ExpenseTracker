@@ -112,7 +112,6 @@ def login():
 
 @app.route("/logout", methods=["POST"])
 def logout():
-    session.clear()
     return jsonify({"msg": "bye"})
 
 # ---------- EXPENSE API ----------
