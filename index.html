@@ -216,6 +216,7 @@ thead {
           <th>Category</th>
           <th>Description</th>
           <th>Amount</th>
+		  <th>Balance</th>
           <th>Action</th>
         </tr>
       </thead>
@@ -398,23 +399,42 @@ async function loadExpenses(){
 function displayExpenses(data) {
   report.innerHTML = "";
 
+  // Track balances per bank
+  const bankBalances = {};
+
+  // Sort by date first
+  data.sort((a,b) => new Date(a.date) - new Date(b.date));
+
   data.forEach(e=>{
+    const bank = e.bank;
+
+    if(!(bank in bankBalances)) bankBalances[bank] = 0;
+
+    // Income adds, Expense subtracts
+    if(e.type === "Income") {
+      bankBalances[bank] += parseFloat(e.amount);
+    } else {
+      bankBalances[bank] -= parseFloat(e.amount);
+    }
+
     report.innerHTML += `
       <tr class="${e.type==='Income'?'income':'expense'}">
         <td>${e.date}</td>
         <td>${e.type}</td>
-        <td>${e.bank}</td>
+        <td>${bank}</td>
         <td>${e.category}</td>
         <td>${e.description}</td>
-        <td>₹ ${e.amount}</td>
+        <td>₹ ${parseFloat(e.amount).toFixed(2)}</td>
+        <td>₹ ${bankBalances[bank].toFixed(2)}</td> <!-- Balance -->
         <td>
-		  <span class="icon" onclick='edit(${JSON.stringify(e)})'>✏️</span>
-		  &nbsp;
-		  <span class="icon" onclick="del(${e.id})">🗑</span>
-		</td>
+          <span class="icon" onclick='edit(${JSON.stringify(e)})'>✏️</span>
+          &nbsp;
+          <span class="icon" onclick="del(${e.id})">🗑</span>
+        </td>
       </tr>
     `;
   });
+
   showReport();
 }
 function applyFilter() {
